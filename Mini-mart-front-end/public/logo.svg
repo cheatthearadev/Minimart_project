@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="cartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <!-- Cart body -->
+  <path d="M40 50 L55 50 L85 130 L155 130 C160 130 165 126 164 121 L150 75 C149 71 145 68 141 68 L65 68" stroke="url(#cartGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Cart basket -->
+  <path d="M70 90 L150 90 L143 120 L77 120 Z" fill="url(#cartGrad)" opacity="0.15" stroke="url(#cartGrad)" stroke-width="0"/>
+  <!-- Handle -->
+  <path d="M55 50 L40 30" stroke="url(#cartGrad)" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- Wheels -->
+  <circle cx="90" cy="148" r="10" fill="url(#accentGrad)"/>
+  <circle cx="140" cy="148" r="10" fill="url(#accentGrad)"/>
+  <circle cx="90" cy="148" r="4" fill="white"/>
+  <circle cx="140" cy="148" r="4" fill="white"/>
+  <!-- Leaf accent -->
+  <path d="M120 30 C120 30 140 20 145 35 C150 50 125 55 120 45 C115 35 120 30 120 30Z" fill="url(#leafGrad)"/>
+  <path d="M120 30 C125 38 135 42 145 35" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <!-- Small sparkle dots -->
+  <circle cx="155" cy="25" r="3" fill="url(#accentGrad)" opacity="0.8"/>
+  <circle cx="165" cy="40" r="2" fill="url(#accentGrad)" opacity="0.5"/>
+</svg>

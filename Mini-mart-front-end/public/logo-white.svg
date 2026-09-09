@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="cartGradW" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="leafGradW" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6ee7b7"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="accentGradW" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <path d="M40 50 L55 50 L85 130 L155 130 C160 130 165 126 164 121 L150 75 C149 71 145 68 141 68 L65 68" stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M70 90 L150 90 L143 120 L77 120 Z" fill="white" opacity="0.1"/>
+  <path d="M55 50 L40 30" stroke="white" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <circle cx="90" cy="148" r="10" fill="url(#accentGradW)"/>
+  <circle cx="140" cy="148" r="10" fill="url(#accentGradW)"/>
+  <circle cx="90" cy="148" r="4" fill="white"/>
+  <circle cx="140" cy="148" r="4" fill="white"/>
+  <path d="M120 30 C120 30 140 20 145 35 C150 50 125 55 120 45 C115 35 120 30 120 30Z" fill="url(#leafGradW)"/>
+  <path d="M120 30 C125 38 135 42 145 35" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="155" cy="25" r="3" fill="url(#accentGradW)" opacity="0.8"/>
+  <circle cx="165" cy="40" r="2" fill="url(#accentGradW)" opacity="0.5"/>
+</svg>
