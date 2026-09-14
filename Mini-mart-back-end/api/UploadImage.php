@@ -1,45 +1,48 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+include_once __DIR__ . '/../config/cors.php';
+include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+JWT::requireAuth();
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
 
 $uploadDir = __DIR__ . '/../uploads/';
-
 if (!is_dir($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
+    mkdir($uploadDir, 0755, true);
 }
 
-if (!empty($_FILES['image'])) {
-    $file = $_FILES['image'];
-    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    $maxSize = 5 * 1024 * 1024;
+if (empty($_FILES['image'])) apiError("No image provided");
 
-    if (!in_array($file['type'], $allowedTypes)) {
-        echo json_encode(["error" => "ត្រូវតែជារូបភាព (JPG, PNG, GIF, WebP)"]);
-        exit();
-    }
+$file = $_FILES['image'];
+$allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+$allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+$maxSize = 5 * 1024 * 1024;
 
-    if ($file['size'] > $maxSize) {
-        echo json_encode(["error" => "ទំហំរូបភាពត្រូវតែតូចជាង 5MB"]);
-        exit();
-    }
+$finfo = new finfo(FILEINFO_MIME_TYPE);
+$mimeType = $finfo->file($file['tmp_name']);
 
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = 'product_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
-    $filepath = $uploadDir . $filename;
+if (!in_array($mimeType, $allowedTypes)) {
+    apiError("Only JPG, PNG, GIF, WebP images are allowed");
+}
 
-    if (move_uploaded_file($file['tmp_name'], $filepath)) {
-        $imageUrl = 'http://localhost/mini-mart-project/Mini-mart-back-end/uploads/' . $filename;
-        echo json_encode(["message" => "Upload ជោគជ័យ", "image" => $imageUrl, "filename" => $filename]);
-    } else {
-        echo json_encode(["error" => "មិនអាចរក្សាទុករូបភាពបានទេ"]);
-    }
+if ($file['size'] > $maxSize) {
+    apiError("Image size must be less than 5MB");
+}
+
+$ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+if (!in_array($ext, $allowedExts)) {
+    apiError("Invalid file extension");
+}
+
+$filename = 'product_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
+$filepath = $uploadDir . $filename;
+
+if (move_uploaded_file($file['tmp_name'], $filepath)) {
+    chmod($filepath, 0644);
+    $imageUrl = 'http://localhost/mini-mart-project/Mini-mart-back-end/uploads/' . $filename;
+    apiSuccess(["message" => "Upload successful", "image" => $imageUrl, "filename" => $filename]);
 } else {
-    echo json_encode(["error" => "មិនមានរូបភាពដែលបានផ្ញើមកទេ"]);
+    apiError("Failed to save image", 500);
 }

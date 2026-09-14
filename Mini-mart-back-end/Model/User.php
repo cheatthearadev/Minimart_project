@@ -16,7 +16,23 @@ class UserModel {
 
         if($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if(password_verify($password, $row['password'])) {
+            $storedPassword = $row['password'];
+
+            $matched = false;
+            if(strpos($storedPassword, '$2y$') === 0 || strpos($storedPassword, '$2a$') === 0 || strpos($storedPassword, '$2b$') === 0) {
+                $matched = password_verify($password, $storedPassword);
+            } else {
+                $matched = ($storedPassword === $password);
+                if($matched) {
+                    $newHash = password_hash($password, PASSWORD_DEFAULT);
+                    $update = $this->conn->prepare("UPDATE " . $this->table_name . " SET password = :pw WHERE id = :id");
+                    $update->bindParam(":pw", $newHash);
+                    $update->bindParam(":id", $row['id']);
+                    $update->execute();
+                }
+            }
+
+            if($matched) {
                 return array(
                     "id" => $row['id'],
                     "username" => $row['username'],

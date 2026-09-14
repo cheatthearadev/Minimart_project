@@ -1,12 +1,14 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
+
+JWT::requireAuth();
+
 $data = json_decode(file_get_contents("php://input"));
-if (empty($data->csv)) { echo json_encode(["error" => "CSV data required"]); exit(); }
+if (empty($data->csv")) apiError("CSV data required");
+
 try {
     $lines = explode("\n", trim($data->csv));
     $imported = 0; $errors = [];
@@ -21,16 +23,16 @@ try {
         $cost_price = $cols[5] ?? 0;
         $category_id = $cols[6] ?? null;
         $stmt = $conn->prepare("INSERT INTO products (barcode, name, price, stock, unit, cost_price, category_id) VALUES (:barcode, :name, :price, :stock, :unit, :cost_price, :category_id)");
-        $stmt->bindParam(":barcode", $barcode);
-        $stmt->bindParam(":name", $name);
+        $stmt->bindParam(":barcode", sanitizeString($barcode));
+        $stmt->bindParam(":name", sanitizeString($name));
         $stmt->bindParam(":price", floatval($price));
         $stmt->bindParam(":stock", intval($stock));
-        $stmt->bindParam(":unit", $unit);
+        $stmt->bindParam(":unit", sanitizeString($unit));
         $stmt->bindParam(":cost_price", floatval($cost_price));
         $catId = !empty($category_id) ? intval($category_id) : null;
         $stmt->bindParam(":category_id", $catId);
         $stmt->execute();
         $imported++;
     }
-    echo json_encode(["message" => "Imported $imported products", "imported" => $imported, "errors" => $errors]);
-} catch (PDOException $e) { echo json_encode(["error" => $e->getMessage()]); }
+    apiSuccess(["message" => "Imported $imported products", "imported" => $imported, "errors" => $errors]);
+} catch (PDOException $e) { handleDbError($e); }

@@ -1,12 +1,11 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/helpers.php';
 
 try {
     $date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) apiError("Invalid date format");
 
     $stmt = $conn->prepare("SELECT COUNT(*) as total_orders, COALESCE(SUM(o.total_amount),0) as total_revenue, COALESCE(SUM(o.cash_received),0) as total_cash, COALESCE(SUM(o.cash_return),0) as total_change, COALESCE(SUM(o.discount_amount),0) as total_discounts, COALESCE(SUM(d.delivery_fee),0) as total_delivery_fees FROM orders o LEFT JOIN deliveries d ON d.order_id = o.id WHERE DATE(o.created_at) = :date AND o.status = 'completed'");
     $stmt->bindParam(":date", $date);
@@ -33,7 +32,7 @@ try {
     $stmt->execute();
     $shift = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode([
+    apiSuccess([
         "date" => $date,
         "summary" => $summary,
         "by_type" => $byType,
@@ -41,6 +40,4 @@ try {
         "by_payment" => $byPayment,
         "shift" => $shift
     ]);
-} catch (PDOException $e) {
-    echo json_encode(["error" => $e->getMessage()]);
-}
+} catch (PDOException $e) { handleDbError($e); }

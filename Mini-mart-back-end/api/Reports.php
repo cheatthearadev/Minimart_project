@@ -1,9 +1,10 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
+
+JWT::requireAuth();
 
 $period = $_GET['period'] ?? 'daily';
 $from = $_GET['from'] ?? null;
@@ -11,8 +12,15 @@ $to = $_GET['to'] ?? null;
 
 try {
     $dateCondition = "";
+    $params = [];
+
     if ($period === 'custom' && $from && $to) {
-        $dateCondition = "AND DATE(o.created_at) BETWEEN '$from' AND '$to'";
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            apiError("Invalid date format. Use YYYY-MM-DD");
+        }
+        $dateCondition = "AND DATE(o.created_at) BETWEEN :from AND :to";
+        $params[':from'] = $from;
+        $params[':to'] = $to;
     } elseif ($period === 'daily') {
         $dateCondition = "AND DATE(o.created_at) = CURDATE()";
     } elseif ($period === 'weekly') {
@@ -22,10 +30,12 @@ try {
     }
 
     $stmt = $conn->prepare("SELECT COUNT(*) as total_orders, COALESCE(SUM(total_amount),0) as total_revenue, COALESCE(SUM(cash_received),0) as total_cash, COALESCE(SUM(cash_return),0) as total_return FROM orders o WHERE 1=1 $dateCondition");
+    foreach ($params as $k => $v) $stmt->bindParam($k, $v);
     $stmt->execute();
     $summary = $stmt->fetch(PDO::FETCH_ASSOC);
 
     $stmt = $conn->prepare("SELECT p.name, SUM(oi.quantity) as qty, SUM(oi.price * oi.quantity) as revenue FROM order_item oi JOIN products p ON oi.product_id = p.id JOIN orders o ON oi.order_id = o.id WHERE 1=1 $dateCondition GROUP BY p.id ORDER BY revenue DESC LIMIT 10");
+    foreach ($params as $k => $v) $stmt->bindParam($k, $v);
     $stmt->execute();
     $topProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -37,5 +47,7 @@ try {
     $stmt->execute();
     $hourly = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    echo json_encode(["summary" => $summary, "top_products" => $topProducts, "daily_revenue" => $dailyRevenue, "hourly_distribution" => $hourly]);
-} catch (PDOException $e) { echo json_encode(["error" => $e->getMessage()]); }
+    apiSuccess(['summary' => $summary, 'top_products' => $topProducts, 'daily_revenue' => $dailyRevenue, 'hourly_distribution' => $hourly]);
+} catch (PDOException $e) {
+    handleDbError($e);
+}

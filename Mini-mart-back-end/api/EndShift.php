@@ -1,14 +1,16 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
+
+JWT::requireAuth();
+
 $data = json_decode(file_get_contents("php://input"));
-if (empty($data->shift_id)) { echo json_encode(["error" => "Shift ID required"]); exit(); }
+if (empty($data->shift_id)) apiError("Shift ID required");
+
 try {
-    $ending_cash = $data->ending_cash ?? 0;
+    $ending_cash = floatval($data->ending_cash ?? 0);
     $stmt = $conn->prepare("SELECT s.start_time, COALESCE(SUM(o.total_amount),0) as total_sales FROM shifts s LEFT JOIN orders o ON o.created_at >= s.start_time AND o.created_at <= NOW() WHERE s.id = :sid");
     $stmt->bindParam(":sid", $data->shift_id);
     $stmt->execute();
@@ -19,5 +21,5 @@ try {
     $stmt->bindParam(":ts", $total_sales);
     $stmt->bindParam(":id", $data->shift_id);
     $stmt->execute();
-    echo json_encode(["message" => "Shift closed", "total_sales" => $total_sales]);
-} catch (PDOException $e) { echo json_encode(["error" => $e->getMessage()]); }
+    apiSuccess(["message" => "Shift closed", "total_sales" => $total_sales]);
+} catch (PDOException $e) { handleDbError($e); }

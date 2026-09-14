@@ -155,7 +155,7 @@ CREATE TABLE IF NOT EXISTS inventory_log (
 
 -- Insert default admin user (password: admin123)
 INSERT IGNORE INTO user (username, password, role) VALUES
-('admin', 'admin123', 'admin');
+('admin', '$2y$12$IwHNvucnwPhjQx96i.W.rupVZRbVjIYCvc.XRCaUqKxGcDyEDLYNi', 'admin');
 
 -- Insert default category
 INSERT IGNORE INTO categories (id, name, description, color) VALUES

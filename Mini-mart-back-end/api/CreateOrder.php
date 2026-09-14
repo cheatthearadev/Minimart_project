@@ -1,27 +1,22 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
 include_once __DIR__ . '/../config/loyalty.php';
+
+$userId = JWT::requireAuth();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') apiError("Method not allowed", 405);
 
 $data = json_decode(file_get_contents("php://input"));
 
 if (empty($data->items) || !is_array($data->items) || count($data->items) === 0) {
-    echo json_encode(["error" => "មិនមានទំនិញក្នុងកន្ត្រកទេ"]);
-    exit();
+    apiError("Cart is empty");
 }
 
 if (!isset($data->cash_received) || $data->cash_received <= 0) {
-    echo json_encode(["error" => "សូមបញ្ចូលចំនួនទឹកប្រាក់ដែលទទួលបាន"]);
-    exit();
+    apiError("Please enter cash received amount");
 }
 
 $order_type = isset($data->order_type) ? $data->order_type : 'dine_in';
@@ -31,10 +26,7 @@ if (!in_array($order_type, $valid_types)) {
 }
 
 if ($order_type === 'delivery') {
-    if (empty($data->delivery_address) || empty($data->delivery_name) || empty($data->delivery_phone)) {
-        echo json_encode(["error" => "សូមបំពេញព័ត៌មានការដឹកជញ្ជូន (ឈ្មោះ, ទូរស័ព្ទ, អាសយដ្ឋាន)"]);
-        exit();
-    }
+    validateRequired($data, ['delivery_address', 'delivery_name', 'delivery_phone']);
 }
 
 try {
@@ -44,8 +36,13 @@ try {
     foreach ($data->items as $item) {
         if (empty($item->id) || empty($item->quantity) || $item->quantity <= 0) {
             $conn->rollBack();
-            echo json_encode(["error" => "ទិន្នន័យទំនិញមិនត្រឹមត្រូវ"]);
-            exit();
+            apiError("Invalid product data");
+        }
+
+        $quantity = intval($item->quantity);
+        if ($quantity > 999) {
+            $conn->rollBack();
+            apiError("Quantity cannot exceed 999 per item");
         }
 
         $stmt = $conn->prepare("SELECT id, name, price, stock FROM products WHERE id = :id FOR UPDATE");
@@ -55,17 +52,15 @@ try {
 
         if (!$product) {
             $conn->rollBack();
-            echo json_encode(["error" => "ទំនិញ ID {$item->id} មិនមានឡើយ"]);
-            exit();
+            apiError("Product ID {$item->id} not found");
         }
 
-        if ($product['stock'] < $item->quantity) {
+        if ($product['stock'] < $quantity) {
             $conn->rollBack();
-            echo json_encode(["error" => "ស្តុកទំនិញ \"{$product['name']}\" មិនគ្រប់គ្រាន់ (នៅសល់ {$product['stock']})"]);
-            exit();
+            apiError("Insufficient stock for \"{$product['name']}\" ({$product['stock']} available)");
         }
 
-        $total_amount += $product['price'] * $item->quantity;
+        $total_amount += $product['price'] * $quantity;
     }
 
     $delivery_fee = 0;
@@ -75,9 +70,8 @@ try {
 
     $discount_amount = isset($data->discount_amount) ? floatval($data->discount_amount) : 0;
     $coupon_discount_amount = 0;
-    $coupon_code = isset($data->coupon_code) && $data->coupon_code !== '' ? $data->coupon_code : null;
+    $coupon_code = isset($data->coupon_code) && $data->coupon_code !== '' ? sanitizeString($data->coupon_code) : null;
 
-    $user_id = isset($data->user_id) ? $data->user_id : null;
     $customer_id = isset($data->customer_id) ? $data->customer_id : null;
     $discount_id = isset($data->discount_id) ? $data->discount_id : null;
 
@@ -97,21 +91,18 @@ try {
         } elseif ($coupon['max_uses'] !== null && intval($coupon['max_uses']) > 0 && intval($coupon['used_count']) >= intval($coupon['max_uses'])) {
             $coupon_error = "This coupon has reached its usage limit";
         } elseif ($coupon['min_order_amount'] !== null && floatval($coupon['min_order_amount']) > 0 && $total_amount < floatval($coupon['min_order_amount'])) {
-            $coupon_error = "Minimum order of $" . number_format(floatval($coupon['min_order_amount']), 2) . " required for this coupon";
+            $coupon_error = "Minimum order of $" . number_format(floatval($coupon['min_order_amount']), 2) . " required";
         }
 
         if ($coupon_error) {
             $conn->rollBack();
-            echo json_encode(["error" => $coupon_error]);
-            exit();
+            apiError($coupon_error);
         }
 
-        // Recalculate the discount server-side to avoid trusting the client value.
         $coupon_discount_amount = $coupon['type'] === 'percentage'
             ? round($total_amount * floatval($coupon['value']) / 100, 2)
             : round(min(floatval($coupon['value']), $total_amount), 2);
 
-        // Only increment when a coupon is actually applied (transaction-safe).
         $stmt = $conn->prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = :id");
         $stmt->bindParam(":id", $coupon['id']);
         $stmt->execute();
@@ -125,12 +116,11 @@ try {
 
     if ($cash_return < 0) {
         $conn->rollBack();
-        echo json_encode(["error" => "ទឹកប្រាក់មិនគ្រប់គ្រាន់ (ត្រូវការ $" . number_format($total_with_fee, 2) . ")"]);
-        exit();
+        apiError("Insufficient cash (required $" . number_format($total_with_fee, 2) . ")");
     }
 
     $payment_method = isset($data->payment_method) ? $data->payment_method : 'cash';
-    if (!in_array($payment_method, ['cash', 'wing'])) {
+    if (!in_array($payment_method, ['cash', 'wing', 'qr'])) {
         $payment_method = 'cash';
     }
 
@@ -140,7 +130,7 @@ try {
     $stmt->bindParam(":total_amount", $total_with_fee);
     $stmt->bindParam(":cash_received", $cash_received);
     $stmt->bindParam(":cash_return", $cash_return);
-    $stmt->bindParam(":user_id", $user_id);
+    $stmt->bindParam(":user_id", $userId);
     $stmt->bindParam(":customer_id", $customer_id);
     $stmt->bindParam(":discount_id", $discount_id);
     $stmt->bindParam(":coupon_code", $coupon_code);
@@ -152,6 +142,8 @@ try {
     $order_id = $conn->lastInsertId();
 
     foreach ($data->items as $item) {
+        $quantity = intval($item->quantity);
+
         $stmt = $conn->prepare("SELECT price FROM products WHERE id = :id");
         $stmt->bindParam(":id", $item->id);
         $stmt->execute();
@@ -160,12 +152,12 @@ try {
         $stmt = $conn->prepare("INSERT INTO order_item (order_id, product_id, quantity, price) VALUES (:order_id, :product_id, :quantity, :price)");
         $stmt->bindParam(":order_id", $order_id);
         $stmt->bindParam(":product_id", $item->id);
-        $stmt->bindParam(":quantity", $item->quantity);
+        $stmt->bindParam(":quantity", $quantity);
         $stmt->bindParam(":price", $product['price']);
         $stmt->execute();
 
         $stmt = $conn->prepare("UPDATE products SET stock = stock - :qty WHERE id = :id");
-        $stmt->bindParam(":qty", $item->quantity);
+        $stmt->bindParam(":qty", $quantity);
         $stmt->bindParam(":id", $item->id);
         $stmt->execute();
     }
@@ -173,10 +165,10 @@ try {
     if ($order_type === 'delivery') {
         $stmt = $conn->prepare("INSERT INTO deliveries (order_id, customer_name, customer_phone, delivery_address, delivery_notes, delivery_fee, status, estimated_time, created_at) VALUES (:order_id, :customer_name, :customer_phone, :delivery_address, :delivery_notes, :delivery_fee, 'pending', :estimated_time, NOW())");
         $stmt->bindParam(":order_id", $order_id);
-        $stmt->bindParam(":customer_name", $data->delivery_name);
-        $stmt->bindParam(":customer_phone", $data->delivery_phone);
-        $stmt->bindParam(":delivery_address", $data->delivery_address);
-        $delivery_notes = isset($data->delivery_notes) ? $data->delivery_notes : null;
+        $stmt->bindParam(":customer_name", sanitizeString($data->delivery_name));
+        $stmt->bindParam(":customer_phone", sanitizeString($data->delivery_phone));
+        $stmt->bindParam(":delivery_address", sanitizeString($data->delivery_address));
+        $delivery_notes = isset($data->delivery_notes) ? sanitizeString($data->delivery_notes) : null;
         $stmt->bindParam(":delivery_notes", $delivery_notes);
         $stmt->bindParam(":delivery_fee", $delivery_fee);
         $estimated_time = isset($data->estimated_time) ? intval($data->estimated_time) : 30;
@@ -202,7 +194,6 @@ try {
             $stmt->execute();
         }
 
-        // Recompute the loyalty tier from the updated total_spent (same transaction).
         $stmt = $conn->prepare("SELECT total_spent FROM customers WHERE id = :id");
         $stmt->bindParam(":id", $customer_id);
         $stmt->execute();
@@ -217,8 +208,8 @@ try {
 
     $conn->commit();
 
-    $response = [
-        "message" => $order_type === 'delivery' ? "ការបញ្ជាទិញ និងការដឹកជញ្ជូនជោគជ័យ!" : "ការលក់ជោគជ័យ!",
+    apiSuccess([
+        "message" => $order_type === 'delivery' ? "Order and delivery created successfully!" : "Sale completed successfully!",
         "order_id" => $order_id,
         "invoice_number" => $invoice_number,
         "order_type" => $order_type,
@@ -228,11 +219,9 @@ try {
         "cash_received" => $cash_received,
         "cash_return" => $cash_return,
         "points_earned" => $points_earned
-    ];
-
-    echo json_encode($response);
+    ]);
 
 } catch (PDOException $e) {
     $conn->rollBack();
-    echo json_encode(["error" => $e->getMessage()]);
+    handleDbError($e);
 }

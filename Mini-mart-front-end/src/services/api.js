@@ -1,14 +1,34 @@
-const BASE = 'http://localhost/mini-mart-project/Mini-mart-back-end/api';
+const BASE = import.meta.env.VITE_API_URL || 'https://minimart-project-2.onrender.com';
+
+function getToken() {
+  try {
+    const saved = sessionStorage.getItem('minimart_user');
+    if (saved) {
+      const user = JSON.parse(saved);
+      return user.token || null;
+    }
+  } catch {}
+  return null;
+}
 
 async function request(endpoint, options = {}) {
   const { method = 'GET', body, isFormData = false } = options;
   const config = { method };
+
+  const headers = {};
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  config.headers = headers;
+
   if (body && !isFormData) {
-    config.headers = { 'Content-Type': 'application/json' };
     config.body = JSON.stringify(body);
   } else if (body && isFormData) {
     config.body = body;
   }
+
   const res = await fetch(`${BASE}/${endpoint}`, config);
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || `Server error: ${res.status}`);
@@ -67,6 +87,7 @@ export const api = {
 
   getOrders: () => request('Orders.php'),
   createOrder: (body) => request('CreateOrder.php', { method: 'POST', body }),
+  voidOrder: (orderId) => request('VoidOrder.php', { method: 'POST', body: { order_id: orderId } }),
 
   getDeliveries: (status) => request(`Deliveries.php${status && status !== 'all' ? `?status=${status}` : ''}`),
   updateDeliveryStatus: (body) => request('UpdateDeliveryStatus.php', { method: 'POST', body }),

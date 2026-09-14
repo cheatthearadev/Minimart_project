@@ -1,9 +1,8 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/helpers.php';
+
 try {
     $stmt = $conn->prepare("SELECT COUNT(*) as orders, COALESCE(SUM(total_amount),0) as revenue FROM orders WHERE DATE(created_at) = CURDATE()");
     $stmt->execute();
@@ -51,7 +50,7 @@ try {
         }
     }
 
-    echo json_encode([
+    apiSuccess([
         "total_products" => $products['total'] ?? 0,
         "stock_value" => $products['stock_value'] ?? 0,
         "low_stock" => $products['low_stock'] ?? 0,
@@ -64,4 +63,6 @@ try {
         "weekly_summary" => $weeklySummary,
         "monthly_summary" => $month
     ]);
-} catch (PDOException $e) { echo json_encode(["error" => $e->getMessage()]); }
+} catch (PDOException $e) {
+    handleDbError($e);
+}

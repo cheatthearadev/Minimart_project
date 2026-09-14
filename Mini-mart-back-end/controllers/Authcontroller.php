@@ -1,7 +1,7 @@
 <?php
-// 💡 ត្រូវប្រាកដថាអក្សរតូចធំត្រូវគ្នាជាមួយ Folder និង File ជាក់ស្តែង
-include_once __DIR__ . '/../config/database.php'; 
-include_once __DIR__ . '/../Model/User.php'; // 💡 ប្រសិនបើក្នុង Folder ឈ្មោះ User.php (U ធំ)
+include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../Model/User.php';
 
 class AuthController {
     private $db;
@@ -10,24 +10,32 @@ class AuthController {
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
-        // 💡 ហៅទៅកាន់ Class UserModel ដែលមាននៅក្នុងឯកសារ Model/User.php
-        $this->user = new UserModel($this->db); 
+        $this->user = new UserModel($this->db);
     }
 
     public function authenticate($data) {
-        if(!empty($data->username) && !empty($data->password)) {
+        if (!empty($data->username) && !empty($data->password)) {
             $auth = $this->user->login($data->username, $data->password);
-            
-            if($auth) {
+
+            if ($auth) {
+                $token = JWT::encode([
+                    'user_id' => $auth['id'],
+                    'username' => $auth['username'],
+                    'role' => $auth['role']
+                ]);
+
                 echo json_encode(array(
                     "message" => "Login successful.",
+                    "token" => $token,
                     "user" => $auth
                 ));
             } else {
-                echo json_encode(array("error" => "Username ឬ Password មិនត្រឹមត្រូវឡើយ!"));
+                http_response_code(401);
+                echo json_encode(array("error" => "Invalid username or password."));
             }
         } else {
-            echo json_encode(array("error" => "សូមបំពេញព័ត៌មានឱ្យបានគ្រប់គ្រាន់។"));
+            http_response_code(400);
+            echo json_encode(array("error" => "Please provide username and password."));
         }
     }
 

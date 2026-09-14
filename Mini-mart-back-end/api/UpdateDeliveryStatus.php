@@ -1,28 +1,16 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
+
+JWT::requireAuth();
 
 $data = json_decode(file_get_contents("php://input"));
-
-if (empty($data->id) || empty($data->status)) {
-    echo json_encode(["error" => "សូមបំពេញ ID និងស្ថានភាព"]);
-    exit();
-}
+if (empty($data->id) || empty($data->status)) apiError("ID and status are required");
 
 $valid_statuses = ['pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled'];
-if (!in_array($data->status, $valid_statuses)) {
-    echo json_encode(["error" => "ស្ថានភាពមិនត្រឹមត្រូវ"]);
-    exit();
-}
+if (!in_array($data->status, $valid_statuses)) apiError("Invalid status");
 
 try {
     $stmt = $conn->prepare("UPDATE deliveries SET status = :status WHERE id = :id");
@@ -32,8 +20,8 @@ try {
 
     if (isset($data->driver_name) && isset($data->driver_phone)) {
         $stmt = $conn->prepare("UPDATE deliveries SET driver_name = :driver_name, driver_phone = :driver_phone WHERE id = :id");
-        $stmt->bindParam(":driver_name", $data->driver_name);
-        $stmt->bindParam(":driver_phone", $data->driver_phone);
+        $stmt->bindParam(":driver_name", sanitizeString($data->driver_name));
+        $stmt->bindParam(":driver_phone", sanitizeString($data->driver_phone));
         $stmt->bindParam(":id", $data->id);
         $stmt->execute();
     }
@@ -44,8 +32,5 @@ try {
         $stmt->execute();
     }
 
-    echo json_encode(["message" => "ស្ថានភាពការដឹកជញ្ជូនត្រូវបានអាប់ដេតជោគជ័យ!", "id" => $data->id, "status" => $data->status]);
-
-} catch (PDOException $e) {
-    echo json_encode(["error" => $e->getMessage()]);
-}
+    apiSuccess(["message" => "Delivery status updated", "id" => $data->id, "status" => $data->status]);
+} catch (PDOException $e) { handleDbError($e); }

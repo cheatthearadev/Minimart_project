@@ -10,14 +10,26 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const saved = sessionStorage.getItem('minimart_user');
     if (saved) {
-      try { setUser(JSON.parse(saved)); } catch { sessionStorage.removeItem('minimart_user'); }
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.token) {
+          const payload = JSON.parse(atob(parsed.token.split('.')[1]));
+          if (payload.exp * 1000 < Date.now()) {
+            sessionStorage.removeItem('minimart_user');
+          } else {
+            setUser(parsed);
+          }
+        } else {
+          setUser(parsed);
+        }
+      } catch { sessionStorage.removeItem('minimart_user'); }
     }
     setLoading(false);
   }, []);
 
   const login = useCallback(async (username, password) => {
     const data = await api.login(username, password);
-    const u = data.user || data;
+    const u = { ...data.user, token: data.token };
     setUser(u);
     sessionStorage.setItem('minimart_user', JSON.stringify(u));
     return u;
@@ -25,7 +37,7 @@ export function AuthProvider({ children }) {
 
   const googleLogin = useCallback(async (credential) => {
     const data = await api.googleLogin(credential);
-    const u = data.user || data;
+    const u = { ...data.user, token: data.token };
     setUser(u);
     sessionStorage.setItem('minimart_user', JSON.stringify(u));
     return u;
@@ -33,7 +45,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (username, password, role) => {
     const data = await api.register(username, password, role);
-    const u = data.user || data;
+    const u = { ...data.user, token: data.token };
     setUser(u);
     sessionStorage.setItem('minimart_user', JSON.stringify(u));
     return u;

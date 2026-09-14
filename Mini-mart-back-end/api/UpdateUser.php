@@ -1,39 +1,29 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(200); exit(); }
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/jwt.php';
+include_once __DIR__ . '/../config/helpers.php';
+
+JWT::requireAdmin();
 
 $data = json_decode(file_get_contents("php://input"));
-if (empty($data->id)) { echo json_encode(["error" => "ID required"]); exit(); }
-if (empty($data->admin_id)) { echo json_encode(["error" => "Admin authentication required"]); exit(); }
-
-$stmt = $conn->prepare("SELECT role FROM user WHERE id = :id LIMIT 1");
-$stmt->bindParam(":id", $data->admin_id);
-$stmt->execute();
-$admin = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if (!$admin || $admin['role'] !== 'admin') {
-    echo json_encode(["error" => "Only admins can update users"]);
-    exit();
-}
+if (empty($data->id)) apiError("ID required");
 
 try {
     $fields = []; $params = [":id" => $data->id];
-    if (!empty($data->full_name)) { $fields[] = "full_name = :full_name"; $params[":full_name"] = $data->full_name; }
+    if (!empty($data->full_name)) { $fields[] = "full_name = :full_name"; $params[":full_name"] = sanitizeString($data->full_name); }
     if (isset($data->profile_image)) { $fields[] = "profile_image = :profile_image"; $params[":profile_image"] = $data->profile_image; }
     if (!empty($data->role)) {
         $validRoles = ['admin', 'supervisor', 'cashier', 'stock_clerk'];
-        if (!in_array($data->role, $validRoles)) {
-            echo json_encode(["error" => "Invalid role"]); exit();
-        }
+        if (!in_array($data->role, $validRoles)) apiError("Invalid role");
         $fields[] = "role = :role"; $params[":role"] = $data->role;
     }
-    if (!empty($data->password)) { $fields[] = "password = :password"; $params[":password"] = $data->password; }
-    if (empty($fields)) { echo json_encode(["error" => "No fields to update"]); exit(); }
+    if (!empty($data->password)) {
+        if (strlen($data->password) < 6) apiError("Password must be at least 6 characters");
+        $fields[] = "password = :password"; $params[":password"] = password_hash($data->password, PASSWORD_DEFAULT);
+    }
+    if (empty($fields)) apiError("No fields to update");
     $stmt = $conn->prepare("UPDATE user SET " . implode(', ', $fields) . " WHERE id = :id");
     $stmt->execute($params);
-    echo json_encode(["message" => "User updated"]);
-} catch (PDOException $e) { echo json_encode(["error" => $e->getMessage()]); }
+    apiSuccess(["message" => "User updated"]);
+} catch (PDOException $e) { handleDbError($e); }

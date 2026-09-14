@@ -22,14 +22,14 @@ TRUNCATE TABLE user;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================
--- USERS  (password stored in plain text in this demo)
+-- USERS  (passwords hashed with bcrypt)
 -- =============================================
 INSERT INTO user (id, username, email, password, auth_provider, role) VALUES
-(1, 'admin',      'admin@minimart.demo',      'admin123',   'local', 'admin'),
-(2, 'Cheat Theara', 'cheat.theara@minimart.demo', 'theara123', 'local', 'cashier'),
-(3, 'Vorn Bomey',   'vorn.bomey@minimart.demo',   'bomey123',  'local', 'cashier'),
-(4, 'Sok Veayou',   'sok.veayou@minimart.demo',   'veayou123', 'local', 'cashier'),
-(5, 'Som Vandy',    'som.vandy@minimart.demo',    'vandy123',  'local', 'cashier');
+(1, 'admin',      'admin@minimart.demo',      '$2y$12$IwHNvucnwPhjQx96i.W.rupVZRbVjIYCvc.XRCaUqKxGcDyEDLYNi',   'local', 'admin'),
+(2, 'Cheat Theara', 'cheat.theara@minimart.demo', '$2y$12$GjF7hLbNvhtyt57d3h.rVeDHpvuzmDtL/wrlL.6DtombWRHtlwCFa', 'local', 'cashier'),
+(3, 'Vorn Bomey',   'vorn.bomey@minimart.demo',   '$2y$12$FeYI4.OZEppaZdZh7sciouRN.xJcmZdw4sHqNRLXu9TOPDqvf1rqe',  'local', 'cashier'),
+(4, 'Sok Veayou',   'sok.veayou@minimart.demo',   '$2y$12$NMxxnyYgcEdqHwGGUJJIvOYGjJKXqG4yQQ8az.5mgE7NARulqmSiq', 'local', 'cashier'),
+(5, 'Som Vandy',    'som.vandy@minimart.demo',    '$2y$12$.SOHGKl.e8sFCvJo9VRbbepPSOFmyBAMM/DM20LfoTkUew4QxOBYG',  'local', 'cashier');
 
 -- =============================================
 -- CATEGORIES

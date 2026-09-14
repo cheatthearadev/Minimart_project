@@ -1,37 +1,64 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-header("Content-Type: application/json; charset=UTF-8");
-
+include_once __DIR__ . '/../config/cors.php';
 include_once __DIR__ . '/../config/database.php';
+include_once __DIR__ . '/../config/helpers.php';
 
 try {
     $stmt = $conn->prepare("SELECT * FROM orders ORDER BY created_at DESC");
     $stmt->execute();
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($orders as &$order) {
-        $stmt = $conn->prepare("
-            SELECT oi.*, p.name, p.barcode 
-            FROM order_item oi 
-            JOIN products p ON oi.product_id = p.id 
-            WHERE oi.order_id = :order_id
-        ");
-        $stmt->bindParam(":order_id", $order['id']);
-        $stmt->execute();
-        $order['items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $orderIds = array_column($orders, 'id');
 
-        if (isset($order['order_type']) && $order['order_type'] === 'delivery') {
-            $stmt = $conn->prepare("SELECT * FROM deliveries WHERE order_id = :order_id LIMIT 1");
-            $stmt->bindParam(":order_id", $order['id']);
-            $stmt->execute();
-            $delivery = $stmt->fetch(PDO::FETCH_ASSOC);
-            $order['delivery'] = $delivery ?: null;
+    if (!empty($orderIds)) {
+        $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+
+        $itemStmt = $conn->prepare("
+            SELECT oi.*, p.name, p.barcode
+            FROM order_item oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id IN ($placeholders)
+        ");
+        foreach ($orderIds as $i => $id) {
+            $itemStmt->bindValue($i + 1, $id, PDO::PARAM_INT);
         }
+        $itemStmt->execute();
+        $allItems = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $itemsByOrder = [];
+        foreach ($allItems as $item) {
+            $itemsByOrder[$item['order_id']][] = $item;
+        }
+
+        $deliveryOrderIds = [];
+        foreach ($orders as $o) {
+            if (isset($o['order_type']) && $o['order_type'] === 'delivery') {
+                $deliveryOrderIds[] = $o['id'];
+            }
+        }
+
+        $deliveriesByOrder = [];
+        if (!empty($deliveryOrderIds)) {
+            $delPlaceholders = implode(',', array_fill(0, count($deliveryOrderIds), '?'));
+            $delStmt = $conn->prepare("SELECT * FROM deliveries WHERE order_id IN ($delPlaceholders)");
+            foreach ($deliveryOrderIds as $i => $id) {
+                $delStmt->bindValue($i + 1, $id, PDO::PARAM_INT);
+            }
+            $delStmt->execute();
+            $allDeliveries = $delStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($allDeliveries as $d) {
+                $deliveriesByOrder[$d['order_id']] = $d;
+            }
+        }
+
+        foreach ($orders as &$order) {
+            $order['items'] = $itemsByOrder[$order['id']] ?? [];
+            $order['delivery'] = $deliveriesByOrder[$order['id']] ?? null;
+        }
+        unset($order);
     }
 
-    echo json_encode($orders);
+    apiSuccess($orders);
 } catch (PDOException $e) {
-    echo json_encode(["error" => $e->getMessage()]);
+    handleDbError($e);
 }
