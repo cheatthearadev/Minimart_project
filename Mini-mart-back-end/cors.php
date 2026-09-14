@@ -1,12 +1,23 @@
 <?php
 
-$allowedOrigins = [
-    'https://minimart-project-seven.vercel.app',
-];
-
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-if (in_array($origin, $allowedOrigins, true)) {
+$allowed = false;
+
+// Main production domain
+if ($origin === 'https://minimart-project-seven.vercel.app') {
+    $allowed = true;
+}
+
+// Vercel preview/deployment domains
+if (preg_match(
+    '/^https:\/\/minimart-project-[a-z0-9]+-cheatthearadevs-projects\.vercel\.app$/',
+    $origin
+)) {
+    $allowed = true;
+}
+
+if ($allowed) {
     header("Access-Control-Allow-Origin: $origin");
     header("Vary: Origin");
 }
