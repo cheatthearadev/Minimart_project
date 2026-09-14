@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Uploaded files (user data, ephemeral on cloud)
+Mini-mart-back-end/uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Bot state
+mini-mart-bot/state.json
+
+# Debug / migration scripts (should not be in production)
+Mini-mart-back-end/create_admin.php
+Mini-mart-back-end/api/MigratePasswords.php

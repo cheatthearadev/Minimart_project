@@ -1,35 +1,14 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GoogleLogin } from '@react-oauth/google'; // ប្រើប្រាស់ Component ផ្លូវការរបស់ React
 
 export default function LoginPage({ onBrowseStore }) {
-  const { login, register, googleLogin } = useAuth();
+  const { login, register } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Handle Google Login Success
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError('');
-    setLoading(true);
-    try {
-      if (credentialResponse.credential) {
-        await googleLogin(credentialResponse.credential);
-      }
-    } catch (err) {
-      setError(err.message || 'Google login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle Google Login Error
-  const handleGoogleError = () => {
-    setError('Google login was unsuccessful. Please try again.');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -174,29 +153,6 @@ export default function LoginPage({ onBrowseStore }) {
               )}
             </button>
           </form>
-
-          {!isRegister && (
-            <div className="mt-6">
-              <div className="relative flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-slate-200" />
-                <span className="text-xs text-slate-400 font-medium">or</span>
-                <div className="flex-1 h-px bg-slate-200" />
-              </div>
-              
-              {/* Google Login Button ដោយប្រើប្រាស់ React Component */}
-              <div className="w-full flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  theme="outline"
-                  size="large"
-                  width={390}
-                  text="continue_with"
-                  shape="rectangular"
-                />
-              </div>
-            </div>
-          )}
 
           <p className="mt-8 text-center text-sm text-slate-500">
             {isRegister ? 'Already have an account?' : "Don't have an account?"}

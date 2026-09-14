@@ -40,7 +40,10 @@ $filepath = $uploadDir . $filename;
 
 if (move_uploaded_file($file['tmp_name'], $filepath)) {
     chmod($filepath, 0644);
-    $imageUrl = 'http://localhost/mini-mart-project/Mini-mart-back-end/uploads/' . $filename;
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $baseUrl = getenv('APP_BASE_URL') ?: "$scheme://$host/mini-mart-project/Mini-mart-back-end";
+    $imageUrl = $baseUrl . '/uploads/' . $filename;
     apiSuccess(["message" => "Upload successful", "image" => $imageUrl, "filename" => $filename]);
 } else {
     apiError("Failed to save image", 500);

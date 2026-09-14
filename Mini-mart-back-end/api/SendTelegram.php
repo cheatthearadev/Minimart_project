@@ -5,13 +5,15 @@ include_once __DIR__ . '/../config/helpers.php';
 $data = json_decode(file_get_contents("php://input"));
 if (!$data || empty($data->message)) apiError("Message is required");
 
-$envFile = file_get_contents(__DIR__ . '/../../mini-mart-bot/.env');
-$botToken = '';
-$chatId = '';
+$botToken = getenv('TELEGRAM_BOT_TOKEN') ?: '';
+$chatId = getenv('TELEGRAM_OWNER_CHAT_ID') ?: '';
 
-if ($envFile) {
-    if (preg_match('/BOT_TOKEN=(.+)/', $envFile, $m)) $botToken = trim($m[1]);
-    if (preg_match('/OWNER_CHAT_ID=(.+)/', $envFile, $m)) $chatId = trim($m[1]);
+if (empty($botToken) || empty($chatId)) {
+    $envFile = @file_get_contents(__DIR__ . '/../../mini-mart-bot/.env');
+    if ($envFile) {
+        if (preg_match('/BOT_TOKEN=(.+)/', $envFile, $m)) $botToken = trim($m[1]);
+        if (preg_match('/OWNER_CHAT_ID=(.+)/', $envFile, $m)) $chatId = trim($m[1]);
+    }
 }
 
 if (empty($botToken) || empty($chatId)) apiError("Telegram bot not configured");

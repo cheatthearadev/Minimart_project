@@ -2,9 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './components/App.jsx'
 import './index.css'
-import { GoogleOAuthProvider } from '@react-oauth/google'
-
-const GOOGLE_CLIENT_ID = '19255134896-pau392c02svqmnb1jj8n1q7k7gimil56.apps.googleusercontent.com';
 
 class ErrorBoundary extends React.Component {
   state = { error: null };
@@ -29,10 +26,7 @@ class ErrorBoundary extends React.Component {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      {/* បន្ថែម GoogleOAuthProvider Wrap នៅជុំវិញ App */}
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-        <App />
-      </GoogleOAuthProvider>
+      <App />
     </ErrorBoundary>
   </React.StrictMode>,
 )
