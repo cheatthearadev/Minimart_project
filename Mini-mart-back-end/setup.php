@@ -19,6 +19,7 @@ function runSQL($conn, $sql, $label) {
     } catch (PDOException $e) {
         $results[] = ["step" => $label, "status" => "error", "message" => $e->getMessage()];
     }
+    while ($conn->nextRowset()) {}
 }
 
 function runMultiLineSQL($conn, $content, $label) {
@@ -38,6 +39,7 @@ function runMultiLineSQL($conn, $content, $label) {
         } catch (PDOException $e) {
             $fail++;
         }
+        while ($conn->nextRowset()) {}
     }
     $results[] = ["step" => $label, "status" => "ok", "statements" => $ok, "skipped" => $fail];
 }
@@ -147,15 +149,16 @@ $seedProducts = "INSERT IGNORE INTO products (id, barcode, name, description, pr
 (45, '8990000000001', 'Cotton Buds 100s', 'Cotton swabs, pack of 100', 0.90, 32, 0.55, 'pack', 5, 4)";
 runSQL($conn, $seedProducts, "seed: products");
 
+// Flush any unbuffered results
+while ($conn->nextRowset()) {}
+
 // Generate simple demo orders
 $users = [2, 3, 4, 5];
-$statuses = ['completed', 'completed', 'completed', 'completed'];
 $otypes = ['dine_in', 'dine_in', 'takeaway', 'delivery'];
 $products = [];
 $stmt = $conn->query("SELECT id, price FROM products");
-while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $products[] = $row;
-}
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt->closeCursor();
 
 $orderCount = 0;
 for ($d = 30; $d >= 0; $d--) {
@@ -197,6 +200,7 @@ for ($d = 30; $d >= 0; $d--) {
             $stmt = $conn->prepare("INSERT INTO orders (invoice_number, order_type, total_amount, cash_received, cash_return, user_id, customer_id, subtotal, discount_amount, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)");
             $stmt->execute([$invoice, $otype, $total, $cash, round($cash - $total, 2), $userId, $custId, $subtotal, $discAmount, $created]);
             $orderId = $conn->lastInsertId();
+            $stmt->closeCursor();
 
             foreach ($items as $item) {
                 $conn->prepare("INSERT INTO order_item (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)")->execute([$orderId, $item[0], $item[1], $item[2]]);
