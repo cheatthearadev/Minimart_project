@@ -19,7 +19,6 @@ function runSQL($conn, $sql, $label) {
     } catch (PDOException $e) {
         $results[] = ["step" => $label, "status" => "error", "message" => $e->getMessage()];
     }
-    while ($conn->nextRowset()) {}
 }
 
 function runMultiLineSQL($conn, $content, $label) {
@@ -39,7 +38,6 @@ function runMultiLineSQL($conn, $content, $label) {
         } catch (PDOException $e) {
             $fail++;
         }
-        while ($conn->nextRowset()) {}
     }
     $results[] = ["step" => $label, "status" => "ok", "statements" => $ok, "skipped" => $fail];
 }
@@ -148,9 +146,6 @@ $seedProducts = "INSERT IGNORE INTO products (id, barcode, name, description, pr
 (44, '4995000000001', 'Razor 5 Pack', 'Disposable razors, 5 pack', 2.90, 20, 2.00, 'pack', 5, 4),
 (45, '8990000000001', 'Cotton Buds 100s', 'Cotton swabs, pack of 100', 0.90, 32, 0.55, 'pack', 5, 4)";
 runSQL($conn, $seedProducts, "seed: products");
-
-// Flush any unbuffered results
-while ($conn->nextRowset()) {}
 
 // Generate simple demo orders
 $users = [2, 3, 4, 5];
