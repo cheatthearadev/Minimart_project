@@ -1,10 +1,10 @@
 <?php
 
-$host = getenv('MYSQL_ADDON_HOST');
-$port = getenv('MYSQL_ADDON_PORT');
-$db   = getenv('MYSQL_ADDON_DB');
-$user = getenv('MYSQL_ADDON_USER');
-$pass = getenv('MYSQL_ADDON_PASSWORD');
+$host = getenv('DB_HOST') ?: getenv('MYSQL_ADDON_HOST') ?: 'localhost';
+$port = getenv('DB_PORT') ?: getenv('MYSQL_ADDON_PORT') ?: '3306';
+$db   = getenv('DB_NAME') ?: getenv('MYSQL_ADDON_DB') ?: 'minimart_db';
+$user = getenv('DB_USER') ?: getenv('MYSQL_ADDON_USER') ?: 'root';
+$pass = getenv('DB_PASSWORD') ?: getenv('MYSQL_ADDON_PASSWORD') ?: '';
 
 try {
     $pdo = new PDO(
