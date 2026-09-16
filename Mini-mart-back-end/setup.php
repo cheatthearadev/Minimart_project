@@ -9,6 +9,9 @@ if (!isset($conn)) {
     exit;
 }
 
+$conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$conn->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+
 $results = [];
 
 function runSQL($conn, $sql, $label) {
