@@ -18,8 +18,18 @@ function apiSuccess($data = null, $message = null) {
 }
 
 function handleDbError($e) {
-    error_log("Database error: " . $e->getMessage());
-    apiError("An internal error occurred", 500);
+    $msg = $e->getMessage();
+    error_log("Database error: " . $msg);
+
+    if (strpos($msg, 'Unknown column') !== false) {
+        apiError("Database schema outdated. Please run /setup.php to update.", 500);
+    } elseif (strpos($msg, 'Table') !== false && strpos($msg, 'doesn\'t exist') !== false) {
+        apiError("Database table missing. Please run /setup.php to initialize.", 500);
+    } elseif (strpos($msg, 'MySQL server has gone away') !== false || strpos($msg, 'Connection') !== false) {
+        apiError("Database connection lost", 500);
+    } else {
+        apiError("Database error occurred", 500);
+    }
 }
 
 function validateRequired($data, $fields) {

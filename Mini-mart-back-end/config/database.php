@@ -11,14 +11,20 @@ try {
     $conn = new PDO(
         "mysql:host=$host;port=$port;dbname=$db;charset=utf8",
         $username,
-        $password
+        $password,
+        [
+            PDO::ATTR_PERSISTENT => true,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]
     );
 
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
 } catch (PDOException $exception) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
-        "error" => "Database connection failed"
+        "error" => "Database connection failed: " . $exception->getMessage()
     ]);
     exit();
 }

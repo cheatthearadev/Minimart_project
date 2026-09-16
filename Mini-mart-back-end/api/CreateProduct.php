@@ -18,16 +18,18 @@ try {
     $image = sanitizeString($data->image ?? null);
     $barcode = sanitizeString($data->barcode ?? null);
     $name = sanitizeString($data->name);
+    $description = sanitizeString($data->description ?? null);
     $category_id = $data->category_id ?? null;
     $supplier_id = $data->supplier_id ?? null;
     $unit = sanitizeString($data->unit ?? 'piece');
     $cost_price = floatval($data->cost_price ?? 0);
 
-    $query = "INSERT INTO products (barcode, name, price, stock, image, category_id, supplier_id, unit, cost_price) VALUES (:barcode, :name, :price, :stock, :image, :category_id, :supplier_id, :unit, :cost_price)";
+    $query = "INSERT INTO products (barcode, name, description, price, stock, image, category_id, supplier_id, unit, cost_price) VALUES (:barcode, :name, :description, :price, :stock, :image, :category_id, :supplier_id, :unit, :cost_price)";
     $stmt = $conn->prepare($query);
 
     $stmt->bindParam(":barcode", $barcode);
     $stmt->bindParam(":name", $name);
+    $stmt->bindParam(":description", $description);
     $stmt->bindParam(":price", $data->price);
     $stmt->bindParam(":stock", $data->stock);
     $stmt->bindParam(":image", $image);
@@ -37,10 +39,13 @@ try {
     $stmt->bindParam(":cost_price", $cost_price);
 
     if ($stmt->execute()) {
-        apiSuccess(["message" => "Product created successfully"]);
+        apiSuccess(["message" => "Product created successfully", "id" => $conn->lastInsertId()]);
     } else {
         apiError("Unable to create product", 500);
     }
 } catch (PDOException $e) {
+    if ($e->getCode() == 23000) {
+        apiError("A product with this barcode already exists");
+    }
     handleDbError($e);
 }

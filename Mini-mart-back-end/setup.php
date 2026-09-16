@@ -83,6 +83,24 @@ $fixCols = [
     "ALTER TABLE orders ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 0 AFTER discount_amount",
     "ALTER TABLE orders ADD COLUMN tax_amount DECIMAL(10,2) DEFAULT 0 AFTER tax_rate",
     "ALTER TABLE orders ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER status",
+    // migration_v3: payment_method on orders
+    "ALTER TABLE orders ADD COLUMN payment_method ENUM('cash','wing','qr') DEFAULT 'cash' AFTER discount_amount",
+    // migration_v4: loyalty_tier on customers
+    "ALTER TABLE customers ADD COLUMN loyalty_tier ENUM('bronze','silver','gold','platinum') DEFAULT 'bronze' AFTER total_spent",
+    // migration_v5: coupon_code on orders + coupons table
+    "ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(50) NULL AFTER discount_id",
+    "CREATE TABLE IF NOT EXISTS coupons (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) NOT NULL UNIQUE,
+        type ENUM('percentage','fixed') NOT NULL DEFAULT 'percentage',
+        value DECIMAL(10,2) NOT NULL,
+        min_order_amount DECIMAL(10,2) NULL,
+        max_uses INT NULL,
+        used_count INT NOT NULL DEFAULT 0,
+        expires_at DATE NULL,
+        is_active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8",
 ];
 $fixed = 0;
 foreach ($fixCols as $sql) {

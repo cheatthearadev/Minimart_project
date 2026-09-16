@@ -6,6 +6,8 @@ include_once __DIR__ . '/../config/helpers.php';
 
 JWT::requireAuth();
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') apiError("Method not allowed", 405);
+
 $data = json_decode(file_get_contents("php://input"));
 validateRequired($data, ['id', 'barcode', 'name', 'price', 'stock']);
 validatePositiveNumber($data->price, 'Price');
@@ -13,16 +15,20 @@ validatePositiveNumber($data->stock, 'Stock');
 
 try {
     $image = sanitizeString($data->image ?? null);
+    $description = sanitizeString($data->description ?? null);
+    $barcode = sanitizeString($data->barcode);
+    $name = sanitizeString($data->name);
     $category_id = $data->category_id ?? null;
     $supplier_id = $data->supplier_id ?? null;
     $unit = sanitizeString($data->unit ?? 'piece');
     $cost_price = floatval($data->cost_price ?? 0);
 
-    $query = "UPDATE products SET barcode = :barcode, name = :name, price = :price, stock = :stock, image = :image, category_id = :category_id, supplier_id = :supplier_id, unit = :unit, cost_price = :cost_price WHERE id = :id";
+    $query = "UPDATE products SET barcode = :barcode, name = :name, description = :description, price = :price, stock = :stock, image = :image, category_id = :category_id, supplier_id = :supplier_id, unit = :unit, cost_price = :cost_price WHERE id = :id";
     $stmt = $conn->prepare($query);
     $stmt->bindParam(":id", $data->id);
-    $stmt->bindParam(":barcode", sanitizeString($data->barcode));
-    $stmt->bindParam(":name", sanitizeString($data->name));
+    $stmt->bindParam(":barcode", $barcode);
+    $stmt->bindParam(":name", $name);
+    $stmt->bindParam(":description", $description);
     $stmt->bindParam(":price", $data->price);
     $stmt->bindParam(":stock", $data->stock);
     $stmt->bindParam(":image", $image);
@@ -36,4 +42,9 @@ try {
     } else {
         apiError("Unable to update product", 500);
     }
-} catch (PDOException $e) { handleDbError($e); }
+} catch (PDOException $e) {
+    if ($e->getCode() == 23000) {
+        apiError("A product with this barcode already exists");
+    }
+    handleDbError($e);
+}

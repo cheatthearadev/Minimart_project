@@ -29,16 +29,27 @@ async function request(endpoint, options = {}) {
     config.body = body;
   }
 
-  const res = await fetch(`${BASE}/${endpoint}`, config);
-  const text = await res.text();
-  let data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+  config.signal = controller.signal;
+
   try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`Server returned non-JSON (${res.status}): ${text.substring(0, 200)}`);
+    const res = await fetch(`${BASE}/${endpoint}`, config);
+    clearTimeout(timeout);
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Server returned non-JSON (${res.status}): ${text.substring(0, 200)}`);
+    }
+    if (!res.ok || data.error) throw new Error(data.error || `Server error: ${res.status}`);
+    return data;
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') throw new Error('Server is starting up, please try again in 30 seconds');
+    throw err;
   }
-  if (!res.ok || data.error) throw new Error(data.error || `Server error: ${res.status}`);
-  return data;
 }
 
 export const api = {

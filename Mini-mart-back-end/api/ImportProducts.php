@@ -22,12 +22,15 @@ try {
         $unit = $cols[4] ?? 'piece';
         $cost_price = $cols[5] ?? 0;
         $category_id = $cols[6] ?? null;
+        $sBarcode = sanitizeString($barcode);
+        $sName = sanitizeString($name);
+        $sUnit = sanitizeString($unit);
         $stmt = $conn->prepare("INSERT INTO products (barcode, name, price, stock, unit, cost_price, category_id) VALUES (:barcode, :name, :price, :stock, :unit, :cost_price, :category_id)");
-        $stmt->bindParam(":barcode", sanitizeString($barcode));
-        $stmt->bindParam(":name", sanitizeString($name));
+        $stmt->bindParam(":barcode", $sBarcode);
+        $stmt->bindParam(":name", $sName);
         $stmt->bindParam(":price", floatval($price));
         $stmt->bindParam(":stock", intval($stock));
-        $stmt->bindParam(":unit", sanitizeString($unit));
+        $stmt->bindParam(":unit", $sUnit);
         $stmt->bindParam(":cost_price", floatval($cost_price));
         $catId = !empty($category_id) ? intval($category_id) : null;
         $stmt->bindParam(":category_id", $catId);

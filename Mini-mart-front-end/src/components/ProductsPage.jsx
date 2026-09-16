@@ -36,6 +36,7 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
   const [eSupplierId, setESupplierId] = useState('');
   const [eUnit, setEUnit] = useState('piece');
   const [eCostPrice, setECostPrice] = useState('');
+  const [eDescription, setEDescription] = useState('');
 
   const fetchProducts = () => api.getProducts().then(d => { setProducts(d); setLoading(false); }).catch(() => setLoading(false));
 
@@ -52,7 +53,8 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
     let img = null;
     if (addImg) { try { img = await api.upload(addImg); } catch (err) { alert(err.message); return; } }
     const body = {
-      barcode: form.aBarcode.value, name: form.aName.value, price: parseFloat(form.aPrice.value),
+      barcode: form.aBarcode.value, name: form.aName.value, description: form.aDescription.value || null,
+      price: parseFloat(form.aPrice.value),
       stock: parseInt(form.aStock.value), category_id: form.aCategory.value || null,
       supplier_id: form.aSupplier.value || null, unit: form.aUnit.value,
       cost_price: parseFloat(form.aCostPrice.value) || 0, image: img
@@ -64,7 +66,7 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
     setEditing(p);
     setEBarcode(p.barcode); setEName(p.name); setEPrice(p.price); setEStock(p.stock);
     setECategoryId(p.category_id || ''); setESupplierId(p.supplier_id || '');
-    setEUnit(p.unit || 'piece'); setECostPrice(p.cost_price || '');
+    setEUnit(p.unit || 'piece'); setECostPrice(p.cost_price || ''); setEDescription(p.description || '');
     setEditPrev(p.image || ''); setEditImg(null);
     setShowEdit(true);
   };
@@ -73,7 +75,8 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
     e.preventDefault();
     let img = editPrev || null;
     if (editImg) { try { img = await api.upload(editImg); } catch (err) { alert(err.message); return; } }
-    api.updateProduct({ id: editing.id, barcode: eBarcode, name: eName, price: parseFloat(ePrice),
+    api.updateProduct({ id: editing.id, barcode: eBarcode, name: eName, description: eDescription,
+      price: parseFloat(ePrice),
       stock: parseInt(eStock), category_id: eCategoryId || null, supplier_id: eSupplierId || null,
       unit: eUnit, cost_price: parseFloat(eCostPrice) || 0, image: img
     }).then(() => { setShowEdit(false); fetchProducts(); }).catch(err => alert(err.message));
@@ -220,6 +223,10 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
                     {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <label className="label-field">{t('products.description') || 'Description'}</label>
+                  <input name="aDescription" className="input-field" placeholder="Product description (optional)" />
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
@@ -326,6 +333,9 @@ export default function ProductsPage({ categories, suppliers, isAdmin, cart, set
                     <option value="">{t('common.select')}</option>
                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
+                </div>
+                <div className="col-span-2"><label className="label-field">{t('products.description') || 'Description'}</label>
+                  <input value={eDescription} onChange={e => setEDescription(e.target.value)} className="input-field" placeholder="Product description" />
                 </div>
               </div>
             </div>

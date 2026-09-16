@@ -10,13 +10,20 @@ export default function LoginPage({ onBrowseStore }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const sanitizeUsername = (val) => val.replace(/[^\x00-\x7F]/g, '');
+
+  const handleUsernameChange = (e) => {
+    setUsername(sanitizeUsername(e.target.value));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+    const cleanUsername = sanitizeUsername(username);
     try {
-      if (isRegister) await register(username, password);
-      else await login(username, password);
+      if (isRegister) await register(cleanUsername, password);
+      else await login(cleanUsername, password);
     } catch (err) {
       setError(err.message || 'Connection failed');
     } finally {
@@ -122,8 +129,8 @@ export default function LoginPage({ onBrowseStore }) {
               <label className="label-field">Username</label>
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required
-                  placeholder="Enter your username"
+                <input type="text" value={username} onChange={handleUsernameChange} required
+                  placeholder="Enter your username" autoComplete="username"
                   className="input-field pl-11" />
               </div>
             </div>
@@ -132,7 +139,7 @@ export default function LoginPage({ onBrowseStore }) {
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                  placeholder="Enter your password"
+                  placeholder="Enter your password" autoComplete="current-password"
                   className="input-field pl-11" />
               </div>
             </div>
@@ -143,7 +150,7 @@ export default function LoginPage({ onBrowseStore }) {
               {loading ? (
                 <span className="flex items-center justify-center gap-2 relative">
                   <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  Processing...
+                  Signing in... please wait
                 </span>
               ) : (
                 <span className="relative flex items-center justify-center gap-2">

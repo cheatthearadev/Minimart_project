@@ -15,7 +15,8 @@ try {
     $start_date = $data->start_date ?? null;
     $end_date = $data->end_date ?? null;
     $stmt = $conn->prepare("INSERT INTO discounts (code, type, value, min_order, max_uses, start_date, end_date) VALUES (:code, :type, :value, :min_order, :max_uses, :start_date, :end_date)");
-    $stmt->bindParam(":code", sanitizeString($data->code));
+    $sCode = sanitizeString($data->code);
+    $stmt->bindParam(":code", $sCode);
     $stmt->bindParam(":type", $data->type);
     $stmt->bindParam(":value", $data->value);
     $stmt->bindParam(":min_order", $min_order);

@@ -8,9 +8,14 @@
 CREATE TABLE IF NOT EXISTS user (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
+    full_name VARCHAR(200) NULL,
+    profile_image VARCHAR(500) NULL,
     password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NULL,
+    auth_provider VARCHAR(50) DEFAULT 'local',
     role ENUM('admin', 'cashier') DEFAULT 'cashier',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS categories (
@@ -18,6 +23,7 @@ CREATE TABLE IF NOT EXISTS categories (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     color VARCHAR(7) DEFAULT '#6366f1',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -28,6 +34,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
     email VARCHAR(150),
     address TEXT,
     notes TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -43,6 +50,9 @@ CREATE TABLE IF NOT EXISTS products (
     category_id INT NULL,
     supplier_id INT NULL,
     image VARCHAR(255),
+    low_stock_threshold INT DEFAULT 10,
+    is_favorite TINYINT(1) DEFAULT 0,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
@@ -55,6 +65,8 @@ CREATE TABLE IF NOT EXISTS customers (
     email VARCHAR(150),
     points INT DEFAULT 0,
     total_spent DECIMAL(10,2) DEFAULT 0.00,
+    loyalty_tier ENUM('bronze','silver','gold','platinum') DEFAULT 'bronze',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -68,9 +80,14 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id INT NULL,
     customer_id INT NULL,
     discount_id INT NULL,
+    coupon_code VARCHAR(50) NULL,
     subtotal DECIMAL(10,2) DEFAULT 0.00,
     discount_amount DECIMAL(10,2) DEFAULT 0.00,
+    tax_rate DECIMAL(5,2) DEFAULT 0,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    payment_method ENUM('cash','wing','qr') DEFAULT 'cash',
     status ENUM('completed', 'pending', 'cancelled') DEFAULT 'completed',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
@@ -151,6 +168,32 @@ CREATE TABLE IF NOT EXISTS inventory_log (
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS coupons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    type ENUM('percentage','fixed') NOT NULL DEFAULT 'percentage',
+    value DECIMAL(10,2) NOT NULL,
+    min_order_amount DECIMAL(10,2) NULL,
+    max_uses INT NULL,
+    used_count INT NOT NULL DEFAULT 0,
+    expires_at DATE NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id INT,
+    old_values JSON,
+    new_values JSON,
+    ip_address VARCHAR(45),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Insert default admin user (password: admin123)

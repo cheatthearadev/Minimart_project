@@ -14,9 +14,10 @@ try {
     $email = sanitizeString($data->email ?? null);
     $address = sanitizeString($data->address ?? null);
     $notes = sanitizeString($data->notes ?? null);
+    $sName = sanitizeString($data->name);
     $stmt = $conn->prepare("UPDATE suppliers SET name=:name, phone=:phone, email=:email, address=:address, notes=:notes WHERE id=:id");
     $stmt->bindParam(":id", $data->id);
-    $stmt->bindParam(":name", sanitizeString($data->name));
+    $stmt->bindParam(":name", $sName);
     $stmt->bindParam(":phone", $phone);
     $stmt->bindParam(":email", $email);
     $stmt->bindParam(":address", $address);

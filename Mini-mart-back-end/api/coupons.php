@@ -27,7 +27,8 @@ try {
             $expires_at = isset($data->expires_at) && $data->expires_at !== '' ? $data->expires_at : null;
             $is_active = isset($data->is_active) ? (intval($data->is_active) ? 1 : 0) : 1;
             $stmt = $conn->prepare("INSERT INTO coupons (code, type, value, min_order_amount, max_uses, used_count, expires_at, is_active) VALUES (:code, :type, :value, :min_order_amount, :max_uses, 0, :expires_at, :is_active)");
-            $stmt->bindParam(":code", sanitizeString($data->code));
+            $sCode = sanitizeString($data->code);
+            $stmt->bindParam(":code", $sCode);
             $stmt->bindParam(":type", $type);
             $stmt->bindParam(":value", $data->value);
             $stmt->bindParam(":min_order_amount", $min_order_amount);

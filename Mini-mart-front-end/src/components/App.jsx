@@ -83,6 +83,15 @@ function AppContent() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    if (!user) return;
+    const BASE = import.meta.env.VITE_API_URL || 'https://minimart-project-2.onrender.com';
+    const ping = () => fetch(`${BASE}/HealthCheck.php`).catch(() => {});
+    ping();
+    const interval = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   useEffect(() => { localStorage.setItem('minimart_dark', dark); }, [dark]);
 
   useEffect(() => {

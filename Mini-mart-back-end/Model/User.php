@@ -13,9 +13,9 @@ class UserModel {
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":username", $username);
         $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if($row) {
             $storedPassword = $row['password'];
 
             $matched = false;
@@ -50,8 +50,9 @@ class UserModel {
         $stmt = $this->conn->prepare($check);
         $stmt->bindParam(":username", $username);
         $stmt->execute();
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if($stmt->rowCount() > 0) {
+        if($existing) {
             return array("error" => "Username already exists!");
         }
 

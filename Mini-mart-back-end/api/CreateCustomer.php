@@ -14,8 +14,9 @@ if (!validateEmail($data->email ?? null)) apiError("Invalid email format");
 try {
     $phone = sanitizeString($data->phone ?? null);
     $email = sanitizeString($data->email ?? null);
+    $sName = sanitizeString($data->name);
     $stmt = $conn->prepare("INSERT INTO customers (name, phone, email) VALUES (:name, :phone, :email)");
-    $stmt->bindParam(":name", sanitizeString($data->name));
+    $stmt->bindParam(":name", $sName);
     $stmt->bindParam(":phone", $phone);
     $stmt->bindParam(":email", $email);
     $stmt->execute();

@@ -14,9 +14,10 @@ if (!validateEmail($data->email ?? null)) apiError("Invalid email format");
 try {
     $phone = sanitizeString($data->phone ?? null);
     $email = sanitizeString($data->email ?? null);
+    $sName = sanitizeString($data->name);
     $stmt = $conn->prepare("UPDATE customers SET name=:name, phone=:phone, email=:email WHERE id=:id");
     $stmt->bindParam(":id", $data->id);
-    $stmt->bindParam(":name", sanitizeString($data->name));
+    $stmt->bindParam(":name", $sName);
     $stmt->bindParam(":phone", $phone);
     $stmt->bindParam(":email", $email);
     $stmt->execute();

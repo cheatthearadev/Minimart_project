@@ -19,9 +19,11 @@ try {
     $stmt->execute();
 
     if (isset($data->driver_name) && isset($data->driver_phone)) {
+        $dName = sanitizeString($data->driver_name);
+        $dPhone = sanitizeString($data->driver_phone);
         $stmt = $conn->prepare("UPDATE deliveries SET driver_name = :driver_name, driver_phone = :driver_phone WHERE id = :id");
-        $stmt->bindParam(":driver_name", sanitizeString($data->driver_name));
-        $stmt->bindParam(":driver_phone", sanitizeString($data->driver_phone));
+        $stmt->bindParam(":driver_name", $dName);
+        $stmt->bindParam(":driver_phone", $dPhone);
         $stmt->bindParam(":id", $data->id);
         $stmt->execute();
     }
