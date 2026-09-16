@@ -72,6 +72,39 @@ safeExec($conn, "CREATE TABLE IF NOT EXISTS `user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 $results[] = ["step" => "fix: create `user` table with backticks", "status" => "ok"];
 
+// Fix missing columns from migration_v7 (stored procedures were skipped)
+$fixCols = [
+    "ALTER TABLE products ADD COLUMN low_stock_threshold INT DEFAULT 10 AFTER image",
+    "ALTER TABLE products ADD COLUMN is_favorite TINYINT(1) DEFAULT 0 AFTER low_stock_threshold",
+    "ALTER TABLE products ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER is_favorite",
+    "ALTER TABLE categories ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER color",
+    "ALTER TABLE suppliers ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER notes",
+    "ALTER TABLE customers ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER total_spent",
+    "ALTER TABLE orders ADD COLUMN tax_rate DECIMAL(5,2) DEFAULT 0 AFTER discount_amount",
+    "ALTER TABLE orders ADD COLUMN tax_amount DECIMAL(10,2) DEFAULT 0 AFTER tax_rate",
+    "ALTER TABLE orders ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER status",
+];
+$fixed = 0;
+foreach ($fixCols as $sql) {
+    if (safeExec($conn, $sql)) $fixed++;
+}
+$results[] = ["step" => "fix: add missing columns", "status" => "ok", "count" => $fixed];
+
+// Create audit_log table (from migration_v7)
+safeExec($conn, "CREATE TABLE IF NOT EXISTS audit_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id INT,
+    old_values JSON,
+    new_values JSON,
+    ip_address VARCHAR(45),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+$results[] = ["step" => "fix: create audit_log table", "status" => "ok"];
+
 $migrations = ['migration.sql', 'migration_v3.sql', 'migration_v4.sql', 'migration_v5.sql', 'migration_v6.sql', 'migration_v7.sql'];
 foreach ($migrations as $m) {
     $path = __DIR__ . '/database/' . $m;
