@@ -30,7 +30,13 @@ async function request(endpoint, options = {}) {
   }
 
   const res = await fetch(`${BASE}/${endpoint}`, config);
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Server returned non-JSON (${res.status}): ${text.substring(0, 200)}`);
+  }
   if (!res.ok || data.error) throw new Error(data.error || `Server error: ${res.status}`);
   return data;
 }
