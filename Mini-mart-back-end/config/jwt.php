@@ -1,8 +1,15 @@
 <?php
 
 class JWT {
-    private static $secret = 'minimart_jwt_secret_key_2026';
+    private static $secret;
     private static $algo = 'HS256';
+
+    private static function getSecret() {
+        if (self::$secret === null) {
+            self::$secret = getenv('JWT_SECRET') ?: 'minimart_jwt_secret_key_2026';
+        }
+        return self::$secret;
+    }
 
     public static function encode($payload) {
         $header = self::base64UrlEncode(json_encode([
@@ -15,7 +22,7 @@ class JWT {
         $payloadEncoded = self::base64UrlEncode(json_encode($payload));
 
         $signature = self::base64UrlEncode(
-            hash_hmac('sha256', "$header.$payloadEncoded", self::$secret, true)
+            hash_hmac('sha256', "$header.$payloadEncoded", self::getSecret(), true)
         );
 
         return "$header.$payloadEncoded.$signature";
@@ -28,7 +35,7 @@ class JWT {
         [$header, $payload, $signature] = $parts;
 
         $expectedSig = self::base64UrlEncode(
-            hash_hmac('sha256', "$header.$payload", self::$secret, true)
+            hash_hmac('sha256', "$header.$payload", self::getSecret(), true)
         );
 
         if (!hash_equals($expectedSig, $signature)) return null;

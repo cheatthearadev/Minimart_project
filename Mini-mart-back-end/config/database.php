@@ -1,4 +1,5 @@
 <?php
+include_once __DIR__ . '/dotenv.php';
 
 $host = getenv('DB_HOST') ?: getenv('MYSQL_ADDON_HOST') ?: 'localhost';
 $port = getenv('DB_PORT') ?: getenv('MYSQL_ADDON_PORT') ?: '3306';
