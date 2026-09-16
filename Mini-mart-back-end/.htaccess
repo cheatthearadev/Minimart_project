@@ -3,3 +3,8 @@ RewriteEngine On
 # Pass Authorization header to PHP
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Route root-level API requests to /api/ folder
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{DOCUMENT_ROOT}/api/%{REQUEST_URI} -f
+RewriteRule ^(.*)$ /api/$1 [L]

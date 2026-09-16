@@ -1,4 +1,4 @@
-const BASE = import.meta.env.VITE_API_URL || 'https://minimart-project-2.onrender.com/api';
+const BASE = import.meta.env.VITE_API_URL || 'https://minimart-project-2.onrender.com';
 
 function getToken() {
   try {
