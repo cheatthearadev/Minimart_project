@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: minimart-project-2
+    runtime: image
+    image:
+      url: https://github.com/cheatthearadev/Minimart_project.git
+    rootDir: Mini-mart-back-end
+    dockerfilePath: Dockerfile
+    healthCheckPath: /healthz.php
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
